@@ -1,41 +1,43 @@
-// Leonida Trophy Atlas v2 — the hand-in program for the gta6-trophy-guide-01 bounty.
-// Node 22, standard library only. The guide itself is this directory's app/ folder:
-// plain static files (HTML, CSS, ES modules, JSON data), no build step, and offline —
-// the app loads nothing over the network. This program copies app/ and screenshots/
-// from beside this file into the output directory and writes /output/dossier.json,
-// the summary the judge reads, using the vendored make.fun library.
-// vendor/makefun-frontend.ts is the kit's copy and must stay unchanged: the scorer
-// requires dossier.json to be byte for byte what its own copy of the library writes.
+// Leonida Trophy Atlas — dossier builder (Node 22, standard library only).
 //
-// Run it locally with:
-//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
-// and serve the app for a look with `node serve.ts` (http://localhost:8080).
-// Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output.
+// Copies this entry's app/ and screenshots/ into the output directory, then
+// writes the make.fun dossier for that directory with the kit's buildDossier.
+//
+//   MAKEFUN_OUTPUT_DIR=out node main.ts
+//
+// With no MAKEFUN_OUTPUT_DIR set, the output directory defaults to /output.
+// The dossier is written to <output>/dossier.json. The caps below are the
+// competition's: the text budget, four screenshots at most 256 KiB each, and
+// the app's file and byte caps from the kit's example.
 
 import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-frontend.ts';
 
-const here = fileURLToPath(new URL('.', import.meta.url));
-const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
+const repoRoot = dirname(fileURLToPath(import.meta.url));
+const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
-// Authored note: v2 packs four things — the checklist app, its step-by-step guides,
-// its screenshots, and the dossier the judge reads. Keep them in step: a screenshot
-// that shows a feature the app no longer has is a lie, so re-take shots after any
-// app change. What changed from v1: every trophy now carries numbered steps, a tip,
-// difficulty and time; the app adds a Next-up planner, per-stage roadmap progress,
-// a 100% completion checklist, per-trophy notes and a sort control.
-mkdirSync(out, { recursive: true });
-cpSync(join(here, 'app'), join(out, 'app'), { recursive: true });
-mkdirSync(join(out, 'screenshots'), { recursive: true });
-if (existsSync(join(here, 'screenshots'))) cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true });
+mkdirSync(outputDir, { recursive: true });
 
-// The scorer's own caps (reference/gate.json): only text_max_bytes shapes the bytes;
-// the others refuse an entry the scorer would refuse (more than 4 screenshots or one
-// over 256 KiB; more than 993 files and directories in app/ or 48 MiB of app files:
-// app/ counts beside /output's own 1000-entry cap, its screenshots/ and dossier.json).
-writeFileSync(
-  join(out, 'dossier.json'),
-  buildDossier(out, { text_max_bytes: 163840, screenshots: { max: 4, max_bytes: 262144 }, app_max_files: 993, app_max_bytes: 50331648 }),
-);
+// Fail early with a named folder instead of a bare ENOENT from cpSync below.
+for (const required of ['app', 'screenshots']) {
+  const path = join(repoRoot, required);
+  if (!existsSync(path)) {
+    throw new Error(`Leonida Trophy Atlas: required folder missing: ${path} — restore it before building the dossier.`);
+  }
+}
+
+// Fresh copy every run: stale files from an earlier build must never leak in.
+cpSync(join(repoRoot, 'app'), join(outputDir, 'app'), { recursive: true, force: true });
+cpSync(join(repoRoot, 'screenshots'), join(outputDir, 'screenshots'), { recursive: true, force: true });
+
+const dossier = buildDossier(outputDir, {
+  text_max_bytes: 163840,
+  screenshots: { max: 4, max_bytes: 262144 },
+  app_max_files: 993,
+  app_max_bytes: 16777216,
+});
+
+writeFileSync(join(outputDir, 'dossier.json'), dossier);
+console.log(`dossier written: ${join(outputDir, 'dossier.json')} (${dossier.length} bytes)`);

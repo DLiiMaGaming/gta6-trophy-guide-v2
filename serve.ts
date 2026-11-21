@@ -1,65 +1,64 @@
-// A small development server for the guide (Node 22, standard library only).
-// `node serve.ts` serves the app/ folder on http://localhost:8080; pass
-// `--port <n>` for another port. It only reads files inside app/, answers with the
-// right content type for each suffix, and refuses anything outside the folder.
-// It is a local convenience for trying the guide, not a server for the internet.
+// Leonida Trophy Atlas — tiny static file server for local testing.
+//
+// Serves app/ on port 8080 so the guide can be opened at
+// http://localhost:8080/ and its screenshots taken. Standard library only,
+// no dependencies, no build step.
+//
+//   node serve.ts
+//   curl -s http://localhost:8080/ | head
+
 import { createReadStream, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const appRoot = resolve(fileURLToPath(new URL('./app', import.meta.url)));
-const argv = process.argv.slice(2);
-const portFlag = argv.indexOf('--port');
-const wanted = portFlag === -1 ? 8080 : Number(argv[portFlag + 1]);
-const port = Number.isInteger(wanted) && wanted > 0 && wanted < 65536 ? wanted : 8080;
+const PORT = 8080;
+const appDir = resolve(join(dirname(fileURLToPath(import.meta.url)), 'app'));
 
-const TYPES: Record<string, string> = {
+function dirname(path) {
+  return path.slice(0, path.lastIndexOf(sep) + 1) || '.';
+}
+
+const CONTENT_TYPES = {
   '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
-  '.webp': 'image/webp',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
-  '.woff2': 'font/woff2',
-  '.webmanifest': 'application/manifest+json',
 };
 
-createServer((request, response) => {
-  const url = new URL(request.url ?? '/', 'http://127.0.0.1');
-  let path = '/';
+const server = createServer((req, res) => {
   try {
-    path = decodeURIComponent(url.pathname);
-  } catch {
-    response.writeHead(400).end('bad request');
-    return;
+    const url = new URL(req.url ?? '/', 'http://localhost');
+    let pathname = decodeURIComponent(url.pathname);
+    if (pathname === '/') pathname = '/index.html';
+    // Resolve inside app/ only: a path that climbs out is rejected outright.
+    const file = resolve(join(appDir, normalize(pathname)));
+    if (!file.startsWith(appDir + sep) && file !== appDir) {
+      res.writeHead(403, { 'content-type': 'text/plain; charset=utf-8' });
+      res.end('forbidden');
+      return;
+    }
+    const stat = statSync(file);
+    if (!stat.isFile()) throw Object.assign(new Error('not a file'), { code: 'ENOENT' });
+    res.writeHead(200, {
+      'content-type': CONTENT_TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream',
+      'content-length': stat.size,
+      'cache-control': 'no-store',
+    });
+    createReadStream(file).pipe(res);
+  } catch (error) {
+    const code = error && error.code === 'ENOENT' ? 404 : 500;
+    res.writeHead(code, { 'content-type': 'text/plain; charset=utf-8' });
+    res.end(code === 404 ? 'not found' : 'server error');
   }
-  if (path.endsWith('/')) path += 'index.html';
-  const file = resolve(join(appRoot, normalize(path)));
-  if (file !== appRoot && !file.startsWith(appRoot + sep)) {
-    response.writeHead(403).end('forbidden');
-    return;
-  }
-  let size: number;
-  try {
-    const stats = statSync(file);
-    if (!stats.isFile()) throw new Error('not a file');
-    size = stats.size;
-  } catch {
-    response.writeHead(404).end('not found');
-    return;
-  }
-  response.writeHead(200, {
-    'content-type': TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream',
-    'content-length': size,
-    'cache-control': 'no-store',
-  });
-  createReadStream(file).pipe(response);
-}).listen(port, '127.0.0.1', () => {
-  console.log(`app/ is on http://localhost:${port}`);
+});
+
+server.listen(PORT, () => {
+  console.log(`Leonida Trophy Atlas serving app/ at http://localhost:${PORT}/`);
 });
