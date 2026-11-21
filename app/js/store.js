@@ -1,112 +1,158 @@
-// Leonida Trophy Atlas v2 — saved progress: localStorage for the earned checklist,
-// per-trophy notes and the 100% checklist, plus export and import. Nothing here
-// reaches the network; every key is this guide's own.
-export const STORAGE_KEY = 'leonida-trophy-atlas-v2';
-export const SPOILER_KEY = 'leonida-trophy-atlas-spoilers';
-export const NOTES_KEY = 'leonida-trophy-atlas-notes-v2';
-export const HUNDRED_KEY = 'leonida-trophy-atlas-hundred-v2';
+// Leonida Trophy Atlas — progress store.
+//
+// One small module owns all persisted state: which trophies the player has earned,
+// which 100%-checklist items are done, and the player's own notes per trophy.
+// Everything lives in localStorage under one key, so clearing it resets the guide.
+// A `?seed=demo` query keeps a fixed demo state in memory only: it never writes
+// to localStorage, so a screenshot session can never pollute a real save.
 
-/** A stored string set, or an empty set when nothing is stored or it does not parse. */
-export function loadStringSet(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return new Set(Array.isArray(parsed) ? parsed.filter((n) => typeof n === 'string') : []);
-  } catch {
-    return new Set();
-  }
+const STORAGE_KEY = 'leonida-trophy-atlas-v2';
+
+// The demo seed: 13 trophies earned, chosen to look like a player partway through
+// the story — the opening missions, the first chapter trophies, and two quick
+// free-roam activities. The cover screenshot shows this as "13 of 55 earned".
+export const DEMO_EARNED = [
+  'Just Like Paradise',
+  'Paradise Lost',
+  'T**s Ass Drug Money',
+  'Vice City, Baby!',
+  'Top Of The World, Ma',
+  'Trust',
+  'Break the Bank',
+  'Family Matters',
+  'DWNFALL',
+  'Hi-Jacked',
+  'Snow Storm',
+  'Master of None',
+  'Stick Fiddler',
+];
+
+export const DEMO_HUNDRED = ['stunts', 'challenges'];
+
+/** An empty state: nothing earned, nothing ticked, no notes. */
+export function emptyState() {
+  return { earned: [], hundred: [], notes: {} };
 }
 
-/** A stored name-to-text map, or an empty map when nothing is stored or it does not parse. */
-export function loadStringMap(key) {
+/** True when the current URL asks for the in-memory demo state. */
+export function isDemoMode(search = globalThis.location?.search ?? '') {
+  return new URLSearchParams(search).get('seed') === 'demo';
+}
+
+/**
+ * Load the saved state from localStorage, or the demo state when `?seed=demo`
+ * is present. A corrupt or foreign saved value is ignored (fresh empty state),
+ * never allowed to crash the page.
+ */
+export function loadState(search) {
+  if (isDemoMode(search)) {
+    return {
+      state: { earned: [...DEMO_EARNED], hundred: [...DEMO_HUNDRED], notes: {} },
+      demo: true,
+    };
+  }
   try {
-    const raw = localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : {};
-    const out = new Map();
-    if (parsed && typeof parsed === 'object') {
-      for (const [k, v] of Object.entries(parsed)) if (typeof v === 'string') out.set(k, v);
+    const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
+    if (!raw) return { state: emptyState(), demo: false };
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { state: emptyState(), demo: false };
     }
-    return out;
+    return {
+      state: {
+        earned: Array.isArray(parsed.earned) ? parsed.earned.filter((n) => typeof n === 'string') : [],
+        hundred: Array.isArray(parsed.hundred) ? parsed.hundred.filter((n) => typeof n === 'string') : [],
+        notes: parsed.notes && typeof parsed.notes === 'object' ? parsed.notes : {},
+      },
+      demo: false,
+    };
   } catch {
-    return new Map();
+    return { state: emptyState(), demo: false };
   }
 }
 
-/** Persist a string set under `key`; returns false when the browser refuses to store. */
-export function saveStringSet(key, set) {
+/** Persist `state` unless we are in demo mode (demo state is memory-only). */
+export function saveState(state, demo) {
+  if (demo) return false;
   try {
-    localStorage.setItem(key, JSON.stringify([...set].sort()));
+    globalThis.localStorage?.setItem(STORAGE_KEY, JSON.stringify(state));
     return true;
   } catch {
     return false;
   }
 }
 
-/** Persist a name-to-text map under `key`; returns false when the browser refuses to store. */
-export function saveStringMap(key, map) {
-  try {
-    localStorage.setItem(key, JSON.stringify(Object.fromEntries(map)));
-    return true;
-  } catch {
-    return false;
-  }
+/** Has the player earned the trophy with this name? */
+export function isEarned(state, name) {
+  return state.earned.includes(name);
 }
 
-/** The spoiler preference: a `?spoilers=on` link wins, then the stored preference. */
-export function loadSpoilers(params) {
-  try {
-    if (params.get('spoilers') === 'on') return true;
-    return localStorage.getItem(SPOILER_KEY) === '1';
-  } catch {
-    return false;
-  }
+/** Toggle a trophy's earned flag; returns the new value. */
+export function toggleEarned(state, name) {
+  const at = state.earned.indexOf(name);
+  if (at >= 0) state.earned.splice(at, 1);
+  else state.earned.push(name);
+  return at < 0;
 }
 
-/** Persist the spoiler preference; a nicety, so a refusal is swallowed. */
-export function saveSpoilers(hidden) {
-  try {
-    localStorage.setItem(SPOILER_KEY, hidden ? '1' : '0');
-  } catch {
-    // Spoiler preference is a nicety; the checklist itself still works.
-  }
+/** The player's note for a trophy, or an empty string. */
+export function getNote(state, name) {
+  const note = state.notes[name];
+  return typeof note === 'string' ? note : '';
 }
 
-/**
- * The demo seed for screenshots: the first 13 trophies in roadmap order (the 12
- * story trophies, then the first free-roam feat). In-memory only — it never writes
- * to localStorage, so a screenshot run cannot clobber a reader's real progress.
- */
-export function demoEarned(trophies) {
-  const ordered = [...trophies].sort((a, b) => a.stage - b.stage);
-  return new Set(ordered.slice(0, 13).map((t) => t.name));
+/** Store (or clear, when blank) the player's note for a trophy. */
+export function setNote(state, name, text) {
+  const trimmed = String(text ?? '').trim();
+  if (trimmed === '') delete state.notes[name];
+  else state.notes[name] = trimmed;
 }
 
-/** The export file's text for one reader's progress (version 2 adds notes and the 100% ticks). */
-export function exportText(earned, hundredDone, notes) {
-  return JSON.stringify(
-    { app: 'leonida-trophy-atlas', version: 2, earned: [...earned].sort(), hundred: [...hundredDone].sort(), notes: Object.fromEntries(notes) },
-    null,
-    2,
-  );
+/** Is a 100%-checklist item (by id) ticked off? */
+export function isHundredDone(state, id) {
+  return state.hundred.includes(id);
+}
+
+/** Toggle a 100%-checklist item; returns the new value. */
+export function toggleHundred(state, id) {
+  const at = state.hundred.indexOf(id);
+  if (at >= 0) state.hundred.splice(at, 1);
+  else state.hundred.push(id);
+  return at < 0;
+}
+
+/** How many trophies are earned out of `total`. */
+export function earnedCount(state) {
+  return state.earned.length;
 }
 
 /**
- * Parse an import file's text into { earned, hundred, notes }, keeping only names
- * and ids this guide knows. Accepts the version 1 shape (an array of names, or an
- * object with an `earned` array) as well as version 2. Throws on anything else.
+ * Serialize the whole state for export: earned trophies, finished 100% items
+ * and notes, plus a timestamp and the guide's version.
  */
-export function parseImport(text, knownTrophies, knownHundredIds) {
-  const parsed = JSON.parse(text);
-  const names = Array.isArray(parsed) ? parsed : parsed.earned;
-  if (!Array.isArray(names)) throw new Error('not a progress file');
-  const known = new Set(knownTrophies);
-  const earned = new Set(names.filter((n) => typeof n === 'string' && known.has(n)));
-  const hundred = new Set(
-    Array.isArray(parsed.hundred) ? parsed.hundred.filter((id) => typeof id === 'string' && knownHundredIds.has(id)) : [],
-  );
-  const notes = new Map();
-  if (parsed.notes && typeof parsed.notes === 'object') {
-    for (const [k, v] of Object.entries(parsed.notes)) if (typeof v === 'string' && known.has(k)) notes.set(k, v);
-  }
-  return { earned, hundred, notes };
+export function exportState(state, totalTrophies) {
+  return {
+    app: 'Leonida Trophy Atlas',
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    earned: [...state.earned].sort(),
+    earnedCount: state.earned.length,
+    totalTrophies,
+    hundred: [...state.hundred].sort(),
+    hundredCount: state.hundred.length,
+    notes: { ...state.notes },
+  };
+}
+
+/** Download `data` as a JSON file in the browser. */
+export function downloadJson(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }
