@@ -3,134 +3,90 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leonida Trophy Atlas — GTA VI trophy guide &amp; tracker</title>
-<meta name="description" content="An offline guide and tracker for all 55 Grand Theft Auto VI PlayStation 5 trophies: a roadmap to the Platinum, missable flags, cited step-by-step guides, a 100% checklist, and a checklist that saves in your browser.">
+<title>Leonida Trophy Atlas — GTA VI Trophy Guide</title>
+<meta name="description" content="A complete offline trophy guide for Grand Theft Auto VI on PlayStation 5: all 55 trophies, a six-stage roadmap to the Platinum, and the 100% completion checklist.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="masthead">
-  <p class="kicker">Grand Theft Auto VI &middot; PlayStation 5 &middot; 55 trophies &middot; 1 Platinum &middot; 2 Gold &middot; 6 Silver &middot; 46 Bronze</p>
-  <h1>Leonida Trophy Atlas</h1>
-  <p class="lede">Every trophy, its official name, description and grade, a step-by-step guide in our own words with its sources, a road to the Platinum, the one missable trophy flagged — and a checklist that remembers what you have earned. No account, no network: it runs entirely from these files.</p>
-  <div class="progress-wrap" aria-label="Progress toward the Platinum">
-    <div class="progress-numbers"><strong id="earned-count">0 / 55</strong><span id="earned-percent">0% to the Platinum</span></div>
-    <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
-    <p class="progress-grades" id="grade-counts"></p>
-    <p class="progress-kinds" id="kind-counts"></p>
+<header class="site-header">
+  <div class="wrap">
+    <p class="eyebrow">Grand Theft Auto VI &middot; PlayStation 5</p>
+    <h1>Leonida Trophy Atlas</h1>
+    <p class="lede">Every trophy, every step, one playthrough. No online trophies, no difficulty
+    trophies, no mission medals &mdash; the run is long, not hard: around 200 hours to the
+    Platinum.</p>
+    <div class="progress-strip" role="status" aria-live="polite">
+      <div class="progress-label">
+        <strong id="progress-count">0 / 55 trophies</strong>
+        <span id="progress-note">Tick a trophy when it pops in your game.</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-meta">
+        <span id="progress-platinum">Platinum: 0% there</span>
+        <span id="progress-hundred">100% checklist: 0 / 16</span>
+      </div>
+    </div>
   </div>
-  <nav class="page-nav" aria-label="Sections">
-    <a href="#planner">Next up</a>
-    <a href="#checklist">Checklist</a>
-    <a href="#roadmap">Roadmap</a>
-    <a href="#hundred">100% checklist</a>
-    <a href="#missables">Missables</a>
-    <a href="#start">Before you start</a>
-    <a href="#about">About &amp; sources</a>
-  </nav>
 </header>
 
-<main>
-<section id="planner" class="panel" aria-label="Next up">
-  <h2>Next up</h2>
-  <p class="section-note">The next unearned trophy in roadmap order, and the two after it — so you always know what to do next instead of scrolling the whole list.</p>
-  <div id="next-up" class="next-up"></div>
-  <ol id="next-after" class="next-after"></ol>
-</section>
+<nav class="tabs wrap" aria-label="Guide sections">
+  <button type="button" class="tab is-active" data-view="checklist">Checklist</button>
+  <button type="button" class="tab" data-view="roadmap">Roadmap</button>
+  <button type="button" class="tab" data-view="hundred">100% Checklist</button>
+</nav>
 
-<section class="panel controls" aria-label="Checklist controls">
-  <div class="control-row">
-    <label class="search-label">Search <input id="search" type="search" placeholder="Trophy name or word…" autocomplete="off"></label>
-    <label>Kind
-      <select id="kind-filter">
-        <option value="all">All kinds</option>
-        <option value="story">Story</option>
-        <option value="missable">Missable</option>
-        <option value="collectible">Collectibles</option>
-        <option value="activity">Activities</option>
-        <option value="online">Online</option>
-      </select>
-    </label>
-    <label>Grade
-      <select id="grade-filter">
-        <option value="all">All grades</option>
-        <option value="platinum">Platinum</option>
-        <option value="gold">Gold</option>
-        <option value="silver">Silver</option>
-        <option value="bronze">Bronze</option>
-      </select>
-    </label>
-    <label>Sort
-      <select id="sort-select">
-        <option value="stage">Roadmap order</option>
-        <option value="grade">Grade</option>
-        <option value="name">Name A–Z</option>
-        <option value="difficulty">Hardest first</option>
-      </select>
-    </label>
-    <label class="check-label"><input id="earned-only" type="checkbox"> Earned only</label>
-    <label class="check-label"><input id="spoiler-toggle" type="checkbox"> Hide story spoilers</label>
-  </div>
-  <div class="control-row">
-    <button id="export-btn" type="button">Export progress</button>
-    <label class="import-label">Import progress <input id="import-input" type="file" accept="application/json,.json"></label>
-    <button id="reset-btn" type="button">Reset checklist</button>
-    <span class="saved-note" id="saved-note" role="status">Progress saves in this browser automatically.</span>
-  </div>
-  <p class="filter-note" id="filter-note"></p>
-</section>
+<main class="wrap">
+  <section id="view-checklist" class="view is-active" aria-label="Trophy checklist">
+    <div class="toolbar">
+      <label class="search-box">
+        <span class="visually-hidden">Search trophies</span>
+        <input id="search" type="search" placeholder="Search trophies&hellip; (try &ldquo;vault&rdquo; or &ldquo;race&rdquo;)" autocomplete="off">
+      </label>
+      <label class="control">
+        <span>Sort</span>
+        <select id="sort">
+          <option value="default">Roadmap order</option>
+          <option value="name">Name A&ndash;Z</option>
+          <option value="difficulty">Easiest first</option>
+          <option value="grade">Grade (Platinum first)</option>
+        </select>
+      </label>
+      <label class="control checkbox">
+        <input id="spoilers" type="checkbox">
+        <span>Show spoiler trophies (<span id="hidden-count">28</span> hidden)</span>
+      </label>
+      <label class="control checkbox">
+        <input id="only-missing" type="checkbox">
+        <span>Not earned yet</span>
+      </label>
+      <button type="button" id="export" class="btn">Export progress (JSON)</button>
+    </div>
+    <p class="hint" id="list-hint"></p>
+    <div id="missables"></div>
+    <div id="trophy-list" class="trophy-grid"></div>
+    <div id="trophy-detail" class="detail" hidden></div>
+  </section>
 
-<section id="checklist" class="panel" aria-label="Trophy checklist">
-  <h2>Trophy checklist</h2>
-  <p class="section-note">Tick a trophy off when you earn it. Open a card for its step-by-step guide, its sources and your own notes. Story trophies are hidden on PlayStation until earned — turn on <em>Hide story spoilers</em> above and their names stay covered until you tick them.</p>
-  <div id="trophy-list" class="trophy-list"></div>
-  <p id="empty-note" class="empty-note" hidden>No trophies match these filters.</p>
-</section>
+  <section id="view-roadmap" class="view" aria-label="Roadmap to the Platinum" hidden>
+    <div id="next-up"></div>
+    <div id="roadmap"></div>
+  </section>
 
-<section id="roadmap" class="panel" aria-label="Roadmap to the Platinum">
-  <h2>Roadmap to the Platinum</h2>
-  <p class="section-note" id="roadmap-intro"></p>
-  <ol id="roadmap-stages" class="roadmap-stages"></ol>
-</section>
-
-<section id="hundred" class="panel" aria-label="100 percent completion checklist">
-  <h2>100% completion checklist</h2>
-  <p class="section-note" id="hundred-intro"></p>
-  <div class="progress-wrap hundred-progress">
-    <div class="progress-numbers"><strong id="hundred-count">0 / 16</strong><span id="hundred-percent">0% of the 100% checklist</span></div>
-    <div class="progress-bar"><div id="hundred-fill" class="progress-fill"></div></div>
-  </div>
-  <ul id="hundred-list" class="hundred-list"></ul>
-</section>
-
-<section id="missables" class="panel" aria-label="Missable trophies">
-  <h2>Missable trophies</h2>
-  <p class="section-note">Built from the official descriptions and the launch guides: only one trophy in the list can be missed. Everything else stays available after the credits, including every side-story finale. The safety net is the same in both cases — keep a manual save at the start of every chapter, because the game has no mission replay.</p>
-  <div id="missable-list" class="trophy-list"></div>
-  <p class="section-note">Story trophies are unmissable: they pop as you play the missions. Trophies marked <strong>potentially missable</strong> above are the only ones that need a save. The time-sensitive Race Against Yago (Chapter 3, hourglass icon) is not a missable trophy by itself, but it feeds Strangers &amp; Freaks — save before it and race the moment it appears.</p>
-</section>
-
-<section id="start" class="panel" aria-label="Before you start">
-  <h2>Before you start</h2>
-  <p class="section-note">Five things to set up before Gone Fishing. Get these right and the whole list is one clean playthrough.</p>
-  <ol class="start-list">
-    <li><strong>Turn cheats off and leave them off.</strong> Cheats switch trophies and saving off on that save — a cheated session earns nothing.</li>
-    <li><strong>Save discipline.</strong> The game has 15 manual save slots plus one autosave and no mission replay. Keep one save at the start of every chapter, one untouched save from just before the final mission, and rotate the rest.</li>
-    <li><strong>Do the Chapter 1 balcony meditation.</strong> After Lucia is home, check the kitchen in the morning and follow her to the balcony of Jason's house. It is the one thing in the game that can be missed — see Positive Mental Attitude.</li>
-    <li><strong>Race Yago the moment the hourglass appears (Chapter 3).</strong> Save first, then race. It is the only time-sensitive strand in the list.</li>
-    <li><strong>Play the story straight through first.</strong> All 12 chapter and named-mission trophies pop as you go, and the side stories, collectibles and grinds all stay open after the credits.</li>
-  </ol>
-</section>
-
-<section id="about" class="panel" aria-label="About and sources">
-  <h2>About &amp; sources</h2>
-  <p>Trophy names, descriptions and grades are the official ones as PlayStation publishes them, taken from Exophase and PSNProfiles, which agree on all 55. Every guide on this page is written in our own words for this guide and names the source each fact comes from — a source is cited, never copied. Where no reliable method has been published yet (Bad Luck, I Guess and The Truth Is Out There), the guide says so instead of guessing.</p>
-  <p>Counts the game tracks: 250 stunts (300 for 100%), 42 Shooting Range gold medals, 100 WAiNK locations, 100 vehicles (200 of 277 for 100%), 50 Challenges (70 of 80 for 100%), 8 stranger strands, 3 card sets (more for 100%), 5 bank vaults (8 for 100%), 10 registered vehicles, $250,000 of laundered marked bills and $100,000 spent. There are no online trophies — all 55 are single-player — and no difficulty or mission-medal trophies.</p>
-  <p class="fineprint">An unofficial fan guide. Not affiliated with, endorsed by or connected to Rockstar Games or PlayStation. No Rockstar logo, artwork or game screenshot is used anywhere in this guide.</p>
-</section>
+  <section id="view-hundred" class="view" aria-label="100 percent completion checklist" hidden>
+    <div id="hundred"></div>
+  </section>
 </main>
 
-<footer class="colophon">
-  <p>Leonida Trophy Atlas — an offline guide. Your progress never leaves this browser.</p>
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Leonida Trophy Atlas &mdash; an independent fan guide. Trophy names, descriptions and
+    grades are as PlayStation publishes them; every guide below is written in the author's own
+    words and names its sources. Grand Theft Auto and GTA are trademarks of Take-Two Interactive.
+    Works fully offline once loaded; your progress is stored only in your own browser.</p>
+    <p><a href="data/trophies.json">trophies.json</a> &middot;
+       <a href="data/roadmap.json">roadmap.json</a> &middot;
+       <a href="data/checklist100.json">checklist100.json</a></p>
+  </div>
 </footer>
 
 <script type="module" src="js/main.js"></script>
